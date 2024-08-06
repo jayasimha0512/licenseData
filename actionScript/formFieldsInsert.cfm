@@ -24,6 +24,13 @@
             </cfif>
         </cfloop>
     </cfoutput>
+    <cfif isDefined('form.fullNameFormat') AND form.fullNameFormat NEQ ''>
+        <cfquery datasource="LicenseData" name="updateFields">
+            UPDATE TBL_schedulerInfo
+            SET fullNameFormat = <cfqueryparam value="#form.fullNameFormat#" cfsqltype="CF_SQL_INTEGER">
+            WHERE ID = <cfqueryparam value="#decryptedID#" cfsqltype="CF_SQL_INTEGER">
+        </cfquery>
+    </cfif>
 
     <cfquery datasource="LicenseData" name="updateFields">
         UPDATE TBL_schedulerInfo

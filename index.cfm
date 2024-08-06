@@ -60,8 +60,10 @@
                             <label for="infoAction" class="form-label">Action</label>
                             <select id="infoAction" class="form-select" name="infoAction">
                                 <option value="" disabled selected>Select your option</option>
-                                <option value="1">Add Data</option>
-                                <option value="2">Update Expiration</option>
+                                <option value="1">Add Data (New table)</option>
+                                <option value="2">Update Expiration Info</option>
+                                <option value="3">Add Data (Existing table)</option>
+                                <option value="4">Insert Only New Data from the File</option>
                             </select>
                         </div>
                         <div class="col-12">
@@ -85,6 +87,20 @@
                             <div class="col-md-8">
                                 <select id="fullName" class="form-select rowsOptions" name="field_fullName">
                                     <option value="" disabled selected>Select your option</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="fullNameFormat" class="form-label">Full Name Format</label>
+                            </div>
+                            <div class="col-md-8">
+                                <select id="fullNameFormat" class="form-select" name="fullNameFormat">
+                                    <option value="" disabled selected>Select your option</option>
+                                    <option value="1">First Middle,Last</option>
+                                    <option value="2">Last, First Middle</option>
+                                    <option value="3">First Middle Last</option>
+                                    <option value="4">Last First Middle</option>
+                                    <option value="5">First Last</option>
+                                    <option value="6">Last First</option>
                                 </select>
                             </div>
                             <div class="col-md-4">

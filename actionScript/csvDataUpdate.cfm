@@ -5,7 +5,7 @@
             cityStateZipPos,namePositionValue,cityStateZipPositionValue,headerRowsProcessed,
             dataMatchedStructKeys,dataMatchedExpStructKeys,dataMatchedAcqStructKeys,dataMatchedStructValues,
             dataMatchedExpStructValues,dataMatchedAcqStructValues,fullNameFormat
-    FROM TBL_schedulerInfo WHERE completedStatus = 0 AND InfoAction = 1;
+    FROM TBL_schedulerInfo WHERE completedStatus = 0 AND InfoAction = 4;
 </cfquery>
 
 <cfif getData.recordCount GT 0>
@@ -162,6 +162,9 @@
 		cityStateZipPos = getData.cityStateZipPos;
 		GetResults = QueryNew(headerRow);
 	}
+
+    /* Checking if LicenseNumber is there in the the fieldsDataStructure, if it is there, then we are getting the column name for that, else it will be 0 */
+    licenseNumberField = ((structKeyExists(fieldsDataStruct, "LicenseNumber")) ? fieldsDataStruct.LicenseNumber : 0);
 	
 	Rows = arraylen(coldArr);
 	Fields = arraylen(listToArray(headerRow));
@@ -450,17 +453,76 @@
 </cfif>
 
 <cftry>
-	<cfquery dbtype="query" name="matchedInfo">
-		SELECT #matchedStructValuesMainList# FROM GetResults
-	</cfquery>
+    <!--- Querying LicenseNumber column from GetResults column  --->
+    <cfquery dbtype="query" name="getLicenseNumbers">
+        SELECT #licenseNumberField# FROM GetResults
+    </cfquery>
+    <cfset licenseNumberValuesList = ''>
+    <!--- Generating column valueList of LicenseNumber column from getLicenseNumbers column and storing it into licenseNumberValuesList --->
+    <cfoutput>
+        <cfloop query = "getLicenseNumbers">
+            <cfloop array = "#getLicenseNumbers.getColumnList()#" index = columnName>
+                <cfset licenseNumberValuesList=ListAppend(licenseNumberValuesList,getLicenseNumbers[columnName][currentrow],",") >
+            </cfloop>
+        </cfloop>
+    </cfoutput>
 
-	<cfquery dbtype="query" name="matchedExpInfo">
-		SELECT #matchedStructValuesExpList# FROM GetResults
-	</cfquery>
+    <cfquery datasource="LicenseData" name="getLicenseNumbersMain">
+        SELECT LicenseNumber FROM #getData.MainTable# WHERE LicenseNumber IN (#licenseNumberValuesList#)
+    </cfquery>
 
-	<cfquery dbtype="query" name="matchedAcqInfo">
-		SELECT #matchedStructValuesAcqList# FROM GetResults
-	</cfquery>
+    <!--- Checking if recordcount of getLicenseNumbers > 0, if true we will save valuelist of LicenseNumber from main table into mainTableLicenseNumbersList 
+    else we save null --->
+    <cfset mainTableLicenseNumbersList = ( (getLicenseNumbersMain.recordCount GT 0) ? valueList(getLicenseNumbersMain.LicenseNumber) : '') >
+	<cfset licenseNumberUpdatedList = ''>
+
+    <cfif len(mainTableLicenseNumbersList) GT 0 >
+        <cfset variables.mainTableLicenseNumbersArr = listToArray(mainTableLicenseNumbersList) >
+        <cfset variables.licenseNumberValuesArr = listToArray(licenseNumberValuesList) >
+
+        <cfloop from = "1" to="#arrayLen(variables.mainTableLicenseNumbersArr)#" index="i">
+            <cfset variables.arrayPositionVal = arrayFind(variables.licenseNumberValuesArr,variables.mainTableLicenseNumbersArr[i]) >
+            <cfif variables.arrayPositionVal >
+                <cfset arrayDeleteAt(variables.licenseNumberValuesArr, variables.arrayPositionVal) >
+            </cfif>
+        </cfloop>
+        <cfset licenseNumberUpdatedList = arrayToList(licenseNumberValuesArr) >
+    </cfif>
+
+	<!--- Debugging
+	<cfdump var="#licenseNumberUpdatedList#"> 
+	<cfdump  var="#getLicenseNumbers#">
+	<cfdump var="#GetResults#">
+	<cfdump  var="#getLicenseNumbersMain#" label = "Main table data" >--->
+	<cfif listLen(licenseNumberUpdatedList) GT 0>
+		<cfquery dbtype="query" name="GetResultsUpdated">
+			SELECT * FROM GetResults WHERE #arrayToList(getLicenseNumbers.getColumnList())# IN (#licenseNumberUpdatedList#)
+		</cfquery>
+	
+		<cfquery dbtype="query" name="matchedInfo">
+			SELECT #matchedStructValuesMainList# FROM GetResultsUpdated
+		</cfquery>
+
+		<cfquery dbtype="query" name="matchedExpInfo">
+			SELECT #matchedStructValuesExpList# FROM GetResultsUpdated
+		</cfquery>
+
+		<cfquery dbtype="query" name="matchedAcqInfo">
+			SELECT #matchedStructValuesAcqList# FROM GetResultsUpdated
+		</cfquery>
+ 	<cfelseif getLicenseNumbersMain.recordCount EQ 0> 
+		<cfquery dbtype="query" name="matchedInfo">
+			SELECT #matchedStructValuesMainList# FROM GetResults
+		</cfquery>
+
+		<cfquery dbtype="query" name="matchedExpInfo">
+			SELECT #matchedStructValuesExpList# FROM GetResults
+		</cfquery>
+
+		<cfquery dbtype="query" name="matchedAcqInfo">
+			SELECT #matchedStructValuesAcqList# FROM GetResults
+		</cfquery>
+	</cfif>
 
 	<cfcatch type="any">
 		<cfdump var="#cfcatch#">
@@ -508,7 +570,8 @@
         qService.execute();
     }
 	</cfscript>
-	<cftry>
+
+	<cfif isdefined('matchedInfo') AND matchedInfo.recordCount GT 0>
 		<cfquery datasource="LicenseData" name="insertMainTableData">
 			INSERT INTO #getData.MainTable# (#matchedStructKeysListMain#) values 
 			<cfoutput query="matchedInfo">
@@ -520,7 +583,9 @@
 				)<cfif matchedInfo.currentRow NEQ matchedInfo.recordCount>,</cfif>
 			</cfoutput>
 		</cfquery>
+	</cfif>
 
+	<cfif isdefined('matchedExpInfo') AND matchedExpInfo.recordCount GT 0>
 		<cfquery datasource="LicenseData" name="insertExpTableData">
 			INSERT INTO #getData.ExpirationTable# (#matchedStructKeysListExp#) values 
 			<cfoutput query="matchedExpInfo">
@@ -532,7 +597,9 @@
 				)<cfif matchedExpInfo.currentRow NEQ matchedExpInfo.recordCount>,</cfif>
 			</cfoutput>
 		</cfquery>
+	</cfif>
 
+	<cfif isdefined('matchedAcqInfo') AND matchedAcqInfo.recordCount GT 0>
 		<cfquery datasource="LicenseData" name="insertAcqInfoData">
 			INSERT INTO #getData.AcqDataTable# (#matchedStructKeysListAcq#) values 
 			<cfoutput query="matchedAcqInfo">
@@ -544,12 +611,8 @@
 				)<cfif matchedAcqInfo.currentRow NEQ matchedAcqInfo.recordCount>,</cfif>
 			</cfoutput>
 		</cfquery>
+	</cfif>
 
-		<!---<cfsetting enablecfoutputonly="No"> --->
-		<cfdump var="#GetResults#">
-		<cfcatch type="any">
-			<cfdump  var="#cfcatch#">
-		</cfcatch>
-	</cftry>
-
+	<cfsetting enablecfoutputonly="No">
+	<cfdump var="#GetResults#">
 </cfif>

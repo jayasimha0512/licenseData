@@ -195,7 +195,7 @@
             )ON [PRIMARY]
         </cfquery>
     <cfelse>
-        <cfif isDefined('form.infoAction') AND form.infoAction NEQ 2>
+        <cfif isDefined('form.infoAction') AND form.infoAction EQ 1>
             <cfquery datasource="LicenseData" name="createMainTable">
                 exec sp_rename 'dbo.#mainTable#', '#mainTable#_#DateFormat(now(),"yyyymmdd")#'
             </cfquery>

@@ -1,5 +1,11 @@
 <cfquery datasource="LicenseData" name="getData">
-	SELECT TOP 1 * from TBL_schedulerInfo WHERE completedStatus = 0 AND InfoAction = 2;
+	SELECT TOP 1 ID,
+            fileName,industry,judiciary,loopingRow,totalRows,InfoAction,MainTable,ExpirationTable,
+            AcqDataTable,headerRows,fieldsData,completedStatus,CREATED_DATE,UPDATED_DATE, namePosition,
+            cityStateZipPos,namePositionValue,cityStateZipPositionValue,headerRowsProcessed,
+            dataMatchedStructKeys,dataMatchedExpStructKeys,dataMatchedAcqStructKeys,dataMatchedStructValues,
+            dataMatchedExpStructValues,dataMatchedAcqStructValues,fullNameFormat
+    FROM TBL_schedulerInfo WHERE completedStatus = 0 AND InfoAction = 2;
 </cfquery>
 
 	<cfscript>
